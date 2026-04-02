@@ -1,0 +1,791 @@
+================================================================================
+  SAFERIDE — PROJECT DOCUMENTATION
+  Complete File Usage Reference & Technology Stack Guide
+  Generated: April 2026
+================================================================================
+
+
+TABLE OF CONTENTS
+─────────────────
+  1.  Project Overview
+  2.  Architecture Overview
+  3.  Technology Stack (by category)
+  4.  Module 1: Landing Page
+  5.  Module 2: Parent Portal
+  6.  Module 3: Admin Dashboard
+  7.  Module 4: API Gateway (Backend)
+  8.  Module 5: AI Service (Face Recognition)
+  9.  Module 6: Driver App (React Native)
+  10. Infrastructure & DevOps
+  11. Key Technologies Deep-Dive
+      - GPS & Map Implementation
+      - Real-Time Communication
+      - Face Recognition / ML
+      - Authentication & Security
+  12. Port Reference
+  13. Data Flow Summary
+
+
+================================================================================
+  1. PROJECT OVERVIEW
+================================================================================
+
+SafeRide is a full-stack, multi-service school transport safety platform. It
+provides real-time GPS tracking, face-recognition-based student boarding
+verification, instant parent alerts, and a centralised admin dashboard for
+fleet management.
+
+Original codename internally: GuardianSync v2.0
+
+
+================================================================================
+  2. ARCHITECTURE OVERVIEW
+================================================================================
+
+                          ┌─────────────────────────┐
+                          │     Landing Page         │
+                          │   (React + Vite)         │
+                          │   localhost:5175         │
+                          └────────────┬────────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+   ┌──────────▼──────────┐  ┌─────────▼──────────┐  ┌─────────▼──────────┐
+   │   Parent Portal     │  │  Admin Dashboard    │  │   Driver App       │
+   │  (React + Vite)     │  │  (React + Vite)     │  │ (React Native /    │
+   │  localhost:5174     │  │  localhost:5173      │  │    Expo)           │
+   └──────────┬──────────┘  └─────────┬──────────┘  └─────────┬──────────┘
+              │                        │                        │
+              └────────────────────────┼────────────────────────┘
+                                       │ HTTP REST + WebSocket
+                               ┌───────▼───────┐
+                               │  API Gateway  │
+                               │  (Node.js /   │
+                               │   Express)    │
+                               │  Port: 3000   │
+                               └───┬───────┬───┘
+                                   │       │
+                     ┌─────────────┘       └──────────────┐
+                     │                                     │
+          ┌──────────▼──────────┐             ┌───────────▼──────────┐
+          │      MongoDB        │             │     AI Service       │
+          │   (Database)        │             │  (Python / FastAPI)  │
+          └─────────────────────┘             │   Port: 8001         │
+                                              └──────────────────────┘
+
+
+================================================================================
+  3. TECHNOLOGY STACK (BY CATEGORY)
+================================================================================
+
+  FRONTEND
+  ────────
+  React 18.2              - UI library (all 3 web apps)
+  Vite 4/5                - Build tool & dev server
+  Tailwind CSS 3.4        - Utility-first CSS (parent & admin portals)
+  GSAP 3.x                - Animation library (landing page & portals)
+  React Router DOM 6.x    - Client-side routing
+  Lucide React            - Icon set
+  React Hot Toast         - Toast notification system
+
+  GPS & MAPPING
+  ─────────────
+  Leaflet 1.9.4           - Open-source interactive maps
+  React Leaflet 4.2.1     - React wrapper for Leaflet
+  OpenStreetMap           - Free tile server (no API key required)
+  Browser Geolocation API - Used in driver app for real GPS coordinates
+
+  REAL-TIME COMMUNICATION
+  ───────────────────────
+  Socket.IO 4.7.4         - WebSocket server (in API gateway)
+  socket.io-client 4.7.4  - WebSocket client (in portals & driver app)
+
+  BACKEND
+  ───────
+  Node.js (≥18)           - Runtime
+  Express 4.18            - HTTP server framework
+  Mongoose 8.1            - MongoDB ODM
+  JWT (jsonwebtoken 9)    - Authentication tokens
+  bcryptjs 2.4            - Password hashing
+  Multer 1.4              - File upload handling
+  Nodemailer 6.9          - Email notifications
+  Twilio 4.21             - SMS notifications
+  node-cron 3             - Scheduled tasks (absentee checks)
+  Helmet 7.1              - HTTP security headers
+  Morgan 1.10             - Request logging
+  Winston 3.11            - Application logging
+  Zod 3.22                - Schema validation
+  Axios 1.6               - HTTP client (API-to-AI service calls)
+  ioredis 5.3             - Redis client (session/cache)
+  uuid 9                  - Unique ID generation
+
+  DATABASE
+  ────────
+  MongoDB                 - Primary database (NoSQL document store)
+  mongoose schemas        - Bus, User, Student, BusLocation models
+
+  AI / MACHINE LEARNING
+  ─────────────────────
+  Python 3.9+             - Language for AI service
+  FastAPI 0.109           - Web framework for AI microservice
+  face_recognition 1.3.0  - High-level face recognition library
+  dlib 19.24.6            - Underlying C++ ML library used by face_recognition
+  numpy 1.26.3            - Numerical computing for vector operations
+  Pillow 10.2.0           - Image processing
+  uvicorn 0.27            - ASGI server for FastAPI
+  gunicorn 21.2           - Production WSGI server
+
+  DRIVER APP
+  ──────────
+  React Native / Expo     - Cross-platform mobile framework
+  Expo Location           - Device GPS access
+  Expo Camera             - Camera access for face scanning
+  React Navigation        - Mobile screen navigation
+
+  DEVOPS / INFRASTRUCTURE
+  ────────────────────────
+  Docker                  - Containerisation (Dockerfiles for API + AI)
+  Docker Compose          - Multi-container orchestration
+  dotenv                  - Environment variable management
+
+
+================================================================================
+  4. MODULE 1: LANDING PAGE
+================================================================================
+
+  Location:  e:\SafeRide-master\landing-page\
+  Port:      5175
+  Run:       npm run dev (from landing-page/)
+
+  ENTRY FILES
+  ───────────
+  index.html
+    - HTML shell. Sets page title, meta description, favicon, and mounts
+      the React root element <div id="root">.
+
+  src/main.jsx
+    - React entry point. Wraps the full app in ThemeProvider and renders
+      <App /> into the DOM root.
+
+  src/App.jsx
+    - Root component. Imports and assembles all sections in order:
+      Navbar → Hero → Features → HowItWorks → Safety → About → CTA → Footer.
+
+  src/index.css
+    - Global stylesheet. Defines all CSS custom properties (design tokens)
+      for dark mode ([data-theme="dark"]) and light mode ([data-theme="light"]).
+      Includes: colours, typography scale, card styles, scrollbar, noise overlay.
+
+  CONTEXT
+  ───────
+  src/context/ThemeContext.jsx
+    - React Context for light/dark mode toggle.
+    - Stores choice in localStorage (key: "saferide-theme").
+    - Sets data-theme attribute on <html> element so CSS variables update.
+
+  COMPONENTS
+  ──────────
+  src/components/Navbar.jsx
+    - Fixed top navigation bar.
+    - Shrinks/gains backdrop blur on scroll (GSAP entry animation).
+    - Contains: Logo, nav links, theme toggle (sun/moon icon), Parent
+      Login button, Admin Login button.
+    - Responsive: collapses to hamburger menu on mobile.
+
+  src/components/Hero.jsx
+    - Full-screen hero section.
+    - GSAP timeline: grid lines draw in → tag fades → headline words
+      stagger up → subtitle → CTAs → stats row.
+    - "Track My Child" button → Parent Portal (localhost:5174).
+    - "Learn More" → scrolls to #features.
+    - Light mode: warm radial gradient accents (amber tones).
+
+  src/components/Features.jsx
+    - 6-card grid showing platform capabilities.
+    - GSAP ScrollTrigger: cards stagger in when section enters viewport.
+    - Cards: Live GPS Tracking, Instant Alerts, Safe Zone Geofencing,
+      Admin Dashboard, Driver Verification, Trip Analytics.
+
+  src/components/HowItWorks.jsx
+    - Split layout: sticky left description + right step list.
+    - Steps: Register → Driver Auth → Parents Track → AI Alerts.
+    - Decorative terminal block showing live status output.
+    - Connector lines draw in with GSAP ScrollTrigger.
+    - Background: bg-card2 (off-white in light mode).
+
+  src/components/Safety.jsx
+    - 4 security feature cards + large trust banner.
+    - Features: Encryption, RBAC, Data Retention, SOC 2.
+
+  src/components/About.jsx
+    - Split layout: story text (left) + tech stack mini-cards (right).
+    - 6 tech cards: React, Node.js, Socket.IO, Leaflet, JWT, AI Service.
+    - Buttons to both portals.
+    - Background: bg-card2 for alternating section depth.
+
+  src/components/CTA.jsx
+    - Infinite GSAP marquee strip of feature keywords.
+    - Final call-to-action with "Parent Login" and "Admin Login" buttons.
+
+  src/components/Footer.jsx
+    - Brand, portal links, platform nav links, copyright.
+    - Background: bg-card (white in light mode) for subtle contrast.
+
+  CONFIG
+  ──────
+  vite.config.js          - Vite config, dev server on port 5175.
+  package.json            - Dependencies: react, react-dom, gsap.
+
+
+================================================================================
+  5. MODULE 2: PARENT PORTAL
+================================================================================
+
+  Location:  e:\SafeRide-master\parent-portal\
+  Port:      5174
+  Run:       npm run dev (from parent-portal/)
+
+  ENTRY FILES
+  ───────────
+  index.html              - HTML shell for the parent web app.
+  src/main.jsx            - React root. Mounts App into DOM.
+  src/App.jsx             - Routing setup (React Router v6). Defines all
+                            protected routes and layout wrapping.
+  src/index.css           - Global styles, Tailwind directives, dark mode
+                            CSS custom properties.
+
+  CONTEXT
+  ───────
+  src/context/AuthContext.jsx
+    - Manages authenticated user state (parent).
+    - Stores JWT token in localStorage.
+    - Exposes: login(), logout(), register(), currentUser.
+
+  src/context/ThemeContext.jsx
+    - Light/dark mode toggle for the parent portal.
+    - Mirrors the same pattern as the landing page ThemeContext.
+
+  SERVICES
+  ────────
+  src/services/api.js
+    - Axios instance pre-configured with the API gateway base URL.
+    - Attaches JWT Authorization header to every request automatically.
+    - Handles 401 errors (auto logout on token expiry).
+
+  COMPONENTS
+  ──────────
+  src/components/Layout.jsx
+    - Shared page shell for all authenticated routes.
+    - Contains: sidebar navigation, top header, theme toggle,
+      notification badge, user avatar.
+    - Handles route-based active link highlighting.
+
+  PAGES
+  ─────
+  src/pages/Login.jsx
+    - Parent login form (email + password).
+    - Shows loading spinner during auth. Redirects to / on success.
+    - Error toasts on failed authentication.
+
+  src/pages/Register.jsx
+    - Parent registration form.
+    - Fields: name, email, password, phone.
+    - Calls POST /api/auth/register on the API gateway.
+
+  src/pages/Home.jsx
+    - Parent dashboard home (after login).
+    - Shows: active trips summary, registered children list, recent alerts.
+    - Fetches data from GET /api/parent/dashboard.
+
+  src/pages/LiveTracking.jsx
+    - ★ CORE PAGE: Real-time bus tracking on an interactive map.
+    - Library: Leaflet + React Leaflet + OpenStreetMap tiles.
+    - Uses Socket.IO client to receive live GPS coordinates from the server
+      (event: "locationUpdate").
+    - Shows bus marker on map, updates position in real time.
+    - Displays ETA, driver info, student boarding status.
+    - Fallback: shows last known position if socket disconnects.
+
+  src/pages/Notifications.jsx
+    - Shows paginated list of all alerts for the parent.
+    - Notification types: boarding, alighting, trip start, trip end,
+      delay, geofence breach, emergency.
+    - Mark as read functionality.
+
+  src/pages/History.jsx
+    - Historical trip log for each registered child.
+    - Filterable by date range and child.
+    - Shows: route taken, boarding/alighting times, driver name.
+
+
+================================================================================
+  6. MODULE 3: ADMIN DASHBOARD
+================================================================================
+
+  Location:  e:\SafeRide-master\admin-dashboard\
+  Port:      5173
+  Run:       npm run dev (from admin-dashboard/)
+
+  ENTRY FILES
+  ───────────
+  index.html              - HTML shell for the admin web app.
+  src/main.jsx            - React root.
+  src/App.jsx             - Routing. All routes require admin role.
+  src/index.css           - Tailwind + dark mode tokens.
+
+  CONTEXT
+  ───────
+  src/context/AuthContext.jsx
+    - Same pattern as parent portal but for admin users.
+    - Role check: only "admin" role can access this app.
+
+  src/context/ThemeContext.jsx
+    - Light/dark mode for admin portal.
+
+  SERVICES
+  ────────
+  src/services/api.js
+    - Axios instance for admin API calls.
+    - Includes all CRUD endpoints for buses, drivers, students, routes.
+
+  COMPONENTS
+  ──────────
+  src/components/Layout.jsx
+    - Admin shell with sidebar, top bar, theme toggle.
+    - Navigation: Dashboard, Live Tracking, Buses, Drivers, Students.
+
+  PAGES
+  ─────
+  src/pages/Login.jsx
+    - Admin login form. Same pattern as parent login.
+
+  src/pages/Register.jsx
+    - Admin account registration / school onboarding.
+
+  src/pages/Dashboard.jsx
+    - Overview statistics: total buses, active trips, students,
+      today's alerts, on-time percentage.
+    - Quick action cards.
+
+  src/pages/LiveTracking.jsx
+    - Admin view of ALL buses simultaneously on one Leaflet map.
+    - Real-time positions for entire fleet via Socket.IO.
+    - Click a bus pin to see: driver name, students on board, route.
+
+  src/pages/Buses.jsx
+    - CRUD management for the bus fleet.
+    - Fields: registration number, capacity, assigned route, driver.
+    - Add / edit / delete buses.
+
+  src/pages/Drivers.jsx
+    - CRUD management for drivers.
+    - Fields: name, licence number, phone, assigned bus, face photo.
+    - Upload driver face photo → stored via API.
+
+  src/pages/Students.jsx
+    - CRUD management for students.
+    - Fields: name, parent email, bus assignment, face encoding reference.
+    - Upload student photo → triggers face encoding via AI service.
+
+
+================================================================================
+  7. MODULE 4: API GATEWAY (BACKEND)
+================================================================================
+
+  Location:  e:\SafeRide-master\api-gateway\
+  Port:      3000
+  Run:       npm run dev (from api-gateway/)
+  Main:      src/index.js
+
+  ENTRY POINT
+  ───────────
+  src/index.js
+    - Bootstraps the Express app.
+    - Connects to MongoDB (mongoose).
+    - Registers all middleware, routes, socket handlers.
+    - Starts HTTP server on port 3000.
+
+  MODELS (src/models/)
+  ────────────────────
+  User.model.js
+    - Schema for both parents and admins.
+    - Fields: email, passwordHash, role ("parent"/"admin"), name, phone,
+      children[] (parent), notifications[], createdAt.
+    - bcrypt hashing on pre-save hook.
+
+  Bus.model.js
+    - Schema for each bus in the fleet.
+    - Fields: registrationNumber, capacity, assignedRoute, driverRef,
+      currentTripId, status.
+
+  BusLocation.model.js
+    - Schema for GPS location records.
+    - Fields: busId, latitude, longitude, speed, heading, timestamp,
+      tripId, studentsOnBoard[].
+    - TTL index: records auto-delete after 90 days.
+
+  Student.model.js
+    - Schema for students.
+    - Fields: name, parentRef, busRef, faceEncoding (128-float array),
+      faceImageUrl, boardingHistory[], isPresent, rfidTag.
+
+  CONTROLLERS (src/controllers/)
+  ──────────────────────────────
+  auth.controller.js
+    - POST /api/auth/register   - Create parent or admin account.
+    - POST /api/auth/login      - Validate credentials, return JWT.
+    - POST /api/auth/refresh    - Refresh expired JWT.
+    - POST /api/auth/logout     - Invalidate token.
+
+  student.controller.js
+    - GET/POST/PUT/DELETE on /api/students.
+    - On student photo upload: forwards image to AI service
+      (POST http://ai-service:8001/api/v1/face/encode).
+    - Stores returned 128-float encoding in Student.model.
+
+  scan.controller.js
+    - POST /api/scan/verify     - Called by driver app when scanning a face.
+    - Fetches all students' encodings for the bus from DB.
+    - Forwards probe encoding + known encodings to AI service
+      (POST http://ai-service:8001/api/v1/face/identify).
+    - If match found: marks student as boarded, fires Socket.IO event,
+      triggers parent notification.
+
+  ROUTES (src/routes/)
+  ────────────────────
+  auth.routes.js          - /api/auth/* endpoints
+  bus.routes.js           - /api/buses/* (CRUD for fleet)
+  parent.routes.js        - /api/parent/* (dashboard, children, history)
+  scan.routes.js          - /api/scan/* (face scan verification)
+  student.routes.js       - /api/students/* (CRUD + photo upload)
+  user.routes.js          - /api/users/* (profile, settings)
+
+  MIDDLEWARE (src/middleware/)
+  ───────────────────────────
+  auth.js
+    - JWT verification middleware.
+    - Decorates req.user with decoded token payload.
+    - Enforces role-based access (admin vs parent routes).
+
+  validate.js
+    - Zod schema validation middleware for request body/params.
+
+  errorHandler.js
+    - Global Express error handler.
+    - Formats all errors into consistent JSON responses.
+
+  SERVICES (src/services/)
+  ────────────────────────
+  notificationService.js
+    - Sends email via Nodemailer (SMTP).
+    - Sends SMS via Twilio API.
+    - Saves notification record to parent's User document.
+    - Triggered on: boarding, alighting, delays, geofence breach.
+
+  aiService.js
+    - HTTP client (Axios) that wraps calls to the Python AI service.
+    - Methods: encodeface(imageBuffer), compareFaces(), identifyFace().
+    - Used by scan.controller.js and student.controller.js.
+
+  absenteeService.js
+    - Runs scheduled checks (via node-cron) at trip end time.
+    - Detects students who never boarded.
+    - Fires "absent" notifications to parents.
+
+  schedulerService.js
+    - Cron job manager.
+    - Schedules: absentee checks, trip status resets, daily summaries.
+
+  storageService.js
+    - Handles file upload to local disk (via Multer).
+    - Stores student and driver face photos in /uploads/ directory.
+
+  SOCKETS (src/sockets/)
+  ──────────────────────
+  index.js  (Socket.IO Handler)
+    - Manages all real-time WebSocket events.
+    - Events emitted TO clients:
+        "locationUpdate"   - { busId, lat, lng, speed, studentsOnBoard }
+        "studentBoarded"   - { studentId, busId, timestamp }
+        "studentAlighted"  - { studentId, busId, timestamp }
+        "tripStarted"      - { busId, routeId, driverId }
+        "tripEnded"        - { busId, summary }
+        "alert"            - { type, message, severity }
+    - Events received FROM driver app:
+        "driverLocation"   - Broadcasts to parent/admin rooms.
+        "scanResult"       - Forwards boarding/alighting events.
+
+  UTILITIES (src/utils/)
+  ──────────────────────
+  Various helper utilities for token generation, distance calculation,
+  response formatting, and date manipulation.
+
+
+================================================================================
+  8. MODULE 5: AI SERVICE (FACE RECOGNITION / ML)
+================================================================================
+
+  Location:  e:\SafeRide-master\ai-service\
+  Port:      8001
+  Language:  Python 3.9+
+  Run:       uvicorn app.main:app --reload --port 8001
+
+  MAIN FILE
+  ─────────
+  app/main.py
+    - Complete FastAPI application. Single file containing all code.
+    - Framework: FastAPI (async, OpenAPI auto-docs at /docs).
+
+  HOW THE FACE RECOGNITION WORKS
+  ───────────────────────────────
+  Library:  face_recognition (by Adam Geitgey)
+  Algo:     Uses dlib's 68-point facial landmark detection.
+            Produces a 128-dimensional embedding vector per face.
+            These embeddings are compared using Euclidean distance.
+  Model:    HOG (Histogram of Oriented Gradients) — fast, CPU-based.
+            Alternative: CNN (more accurate, needs GPU).
+
+  ENDPOINTS
+  ─────────
+  GET  /health
+    - Health check. Returns service status and capabilities.
+
+  POST /api/v1/face/encode (multipart file upload)
+    - Accepts: image file (JPEG/PNG).
+    - Process: detect face → extract 128D embedding vector.
+    - Returns: { success, face_encoding: float[128], faces_detected }.
+    - Used when: admin uploads a new student or driver photo.
+
+  POST /api/v1/face/encode-base64
+    - Same as above but accepts base64-encoded image string.
+    - Used when: driver app sends live camera frame as base64.
+
+  POST /api/v1/face/compare
+    - Accepts: two 128D encoding arrays + tolerance (default 0.6).
+    - Process: calculates Euclidean distance between vectors.
+    - Returns: { is_match: bool, distance: float, confidence: float }.
+
+  POST /api/v1/face/identify
+    - Accepts: one probe encoding + list of {id, encoding} objects.
+    - Process: compares probe against all known encodings, finds closest.
+    - Returns: { found: bool, matched_id, distance, confidence }.
+    - Used when: driver scans a student's face to verify identity.
+
+  FACE RECOGNITION PIPELINE (end-to-end)
+  ───────────────────────────────────────
+  1. Admin uploads student photo via Admin Dashboard.
+  2. API Gateway (student.controller.js) forwards to /face/encode.
+  3. AI Service returns 128D float array.
+  4. API Gateway stores the array in Student.faceEncoding in MongoDB.
+
+  VERIFICATION AT BUS (scan):
+  1. Driver opens ScanScreen in driver app.
+  2. Camera captures face → sends base64 to API Gateway.
+  3. API Gateway calls /face/encode-base64 on AI service → gets probe encoding.
+  4. API Gateway fetches all students' stored encodings for that bus.
+  5. API Gateway calls /face/identify with probe + known encodings.
+  6. AI Service returns matched studentId (or not found).
+  7. API Gateway fires Socket.IO "studentBoarded" → real-time parent alert.
+
+  ML METRICS
+  ──────────
+  Encoding dimensions:  128 floats per face
+  Match tolerance:      0.6 Euclidean distance (configurable)
+  Confidence formula:   (1 - distance/tolerance) × 100%
+  Accuracy:             ~99.38% on LFW benchmark (dlib baseline)
+
+
+================================================================================
+  9. MODULE 6: DRIVER APP (REACT NATIVE)
+================================================================================
+
+  Location:  e:\SafeRide-master\driver-app\
+  Platform:  Android / iOS (via Expo)
+  Run:       npx expo start (from driver-app/)
+
+  ENTRY
+  ─────
+  App.jsx
+    - Root app with React Navigation stack.
+    - Routes: Login → Home → Scan → Students.
+  app.json
+    - Expo configuration: app name, icons, permissions.
+    - Required permissions: CAMERA, LOCATION.
+
+  CONTEXT
+  ───────
+  src/context/AuthContext.jsx  - Driver authentication state.
+
+  SCREENS
+  ───────
+  src/screens/LoginScreen.jsx
+    - Driver login with email + password.
+    - On success: stores token, navigates to Home.
+
+  src/screens/HomeScreen.jsx
+    - Driver's active trip dashboard.
+    - Shows: assigned bus, route, student count, trip status.
+    - "Start Trip" button → begins GPS broadcasting via Socket.IO.
+    - GPS: uses Expo Location (expo-location) to get real device coords.
+    - Sends location to server every 3 seconds via Socket.IO event
+      "driverLocation" → { busId, lat, lng, speed, heading }.
+
+  src/screens/ScanScreen.jsx
+    - ★ FACE SCAN SCREEN (core feature).
+    - Uses Expo Camera to capture student face.
+    - Converts captured frame to base64.
+    - POSTs base64 image to API Gateway for face identification.
+    - Shows result: student name + photo (match) or "Unknown" (no match).
+    - On match: fires boarding/alighting toggle event.
+
+  src/screens/StudentsScreen.jsx
+    - List of all students assigned to the driver's bus.
+    - Shows boarding status for current trip.
+
+  SERVICES
+  ────────
+  src/services/api.js
+    - Axios instance configured for the API gateway.
+    - Attaches driver JWT to all requests.
+
+
+================================================================================
+  10. INFRASTRUCTURE & DEVOPS
+================================================================================
+
+  docker-compose.yml  (root of project)
+  ──────────────────────────────────────
+  Defines multi-container setup:
+    - api-gateway   : Node.js container, port 3000
+    - ai-service    : Python/FastAPI container, port 8001
+    - mongodb       : MongoDB container, port 27017
+    - redis         : Redis container, port 6379
+
+  api-gateway/Dockerfile
+    - FROM node:18-alpine
+    - Copies src, installs deps, exposes port 3000.
+
+  ai-service/Dockerfile
+    - FROM python:3.9-slim
+    - Installs dlib build dependencies (cmake, gcc).
+    - Installs all Python requirements.
+    - Exposes port 8001.
+
+  .env.example files
+  ──────────────────
+  api-gateway/.env.example   - All required env vars for backend:
+    MONGODB_URI, JWT_SECRET, REDIS_URL, SMTP_*, TWILIO_*, AI_SERVICE_URL
+  ai-service/.env.example    - Port, CORS origins.
+
+
+================================================================================
+  11. KEY TECHNOLOGIES DEEP-DIVE
+================================================================================
+
+  GPS & MAP IMPLEMENTATION
+  ─────────────────────────
+  Library:     Leaflet 1.9.4 + React Leaflet 4.2.1
+  Map Tiles:   OpenStreetMap (https://tile.openstreetmap.org/{z}/{x}/{y}.png)
+               Free, no API key required.
+  Components:  <MapContainer>, <TileLayer>, <Marker>, <Popup> from react-leaflet.
+  GPS Source:  Driver's phone via Expo Location API.
+               navigator.geolocation on web (browser GPS).
+  Update Rate: Every 3 seconds (driver app → Socket.IO → API Gateway → clients).
+  Used in:     parent-portal/src/pages/LiveTracking.jsx
+               admin-dashboard/src/pages/LiveTracking.jsx
+               driver-app/src/screens/HomeScreen.jsx
+
+  REAL-TIME COMMUNICATION
+  ───────────────────────
+  Protocol:    WebSocket (Socket.IO over ws://)
+  Server:      socket.io in api-gateway/src/sockets/index.js
+  Clients:     socket.io-client in parent portal, admin dashboard, driver app.
+  Rooms:       Each bus has its own Socket.IO room (busId).
+               Parents join the room for their child's bus automatically.
+               Admin joins all rooms.
+  Key Events:
+    driverLocation   → GPS lat/lng from driver app to server
+    locationUpdate   → Server broadcasts GPS to parent/admin
+    studentBoarded   → AI scan verified boarding
+    studentAlighted  → AI scan verified exit
+    alert            → System-level alerts to parents
+
+  FACE RECOGNITION / ML
+  ─────────────────────
+  Library:       face_recognition (Python) — built on dlib
+  Algorithm:     Deep metric learning (ResNet-based face embedding)
+  Vector Size:   128 dimensions per face
+  Distance:      Euclidean: sqrt(sum((v1[i]-v2[i])^2 for i in 0..127))
+  Threshold:     0.6 = match (tunable per installation)
+  Processing:    CPU-only by default (HOG model). GPU possible (CNN model).
+  Storage:       128D float array stored per student in MongoDB.
+  NOT used:      No Keras, TensorFlow or PyTorch directly. The face_recognition
+                 library wraps dlib's pre-trained ResNet model internally.
+
+  AUTHENTICATION & SECURITY
+  ──────────────────────────
+  JWT:           jsonwebtoken — HS256 signed tokens
+  Roles:         "parent", "admin", "driver"
+  Hashing:       bcryptjs with 10 salt rounds
+  Headers:       Helmet.js sets Content-Security-Policy, X-Frame-Options, etc.
+  Validation:    Zod schemas on all request bodies
+  CORS:          Configured per-origin in Express and FastAPI
+
+
+================================================================================
+  12. PORT REFERENCE
+================================================================================
+
+  Service            Port    Technology
+  ─────────────────────────────────────────────────
+  Landing Page       5175    React + Vite
+  Parent Portal      5174    React + Vite
+  Admin Dashboard    5173    React + Vite
+  API Gateway        3000    Node.js + Express
+  AI Service         8001    Python + FastAPI
+  MongoDB            27017   MongoDB
+  Redis              6379    Redis
+
+
+================================================================================
+  13. DATA FLOW SUMMARY
+================================================================================
+
+  PARENT TRACKING A BUS
+  ──────────────────────
+  Driver App (GPS) → Socket.IO "driverLocation"
+    → API Gateway (sockets/index.js) → stores in BusLocation collection
+    → broadcasts "locationUpdate" to bus room
+    → Parent Portal (LiveTracking.jsx) receives event
+    → React state update → Leaflet Marker moves on map
+
+  STUDENT BOARDING VERIFICATION (FACE SCAN)
+  ──────────────────────────────────────────
+  1. Driver App (ScanScreen) captures photo → base64
+  2. POST /api/scan/verify → API Gateway (scan.controller.js)
+  3. API Gateway → POST /api/v1/face/encode-base64 → AI Service
+  4. AI Service returns 128D probe encoding
+  5. API Gateway fetches all student encodings for bus from MongoDB
+  6. API Gateway → POST /api/v1/face/identify → AI Service
+  7. AI Service returns matched studentId + confidence %
+  8. API Gateway marks Student.boardingHistory (MongoDB)
+  9. Emits "studentBoarded" via Socket.IO
+  10. Parent Portal receives event → shows "Your child has boarded Bus #3"
+  11. notificationService.js → sends SMS (Twilio) + Email (Nodemailer)
+
+  PARENT REGISTRATION & CHILD LINK
+  ──────────────────────────────────
+  1. Parent registers on Parent Portal (Register.jsx)
+  2. POST /api/auth/register → API Gateway
+  3. User document created in MongoDB (role: "parent")
+  4. Admin adds student in Admin Dashboard → selects parent email
+  5. Student.parentRef linked to parent User document
+  6. Parent can now see child in Home.jsx and track on LiveTracking.jsx
+
+
+================================================================================
+  END OF DOCUMENT
+================================================================================
+  SafeRide Project Documentation — v1.0
+  For questions about setup, refer to README.md and TESTGUIDE.md in project root.
+================================================================================
