@@ -18,10 +18,12 @@ import { routeAPI, locationAPI } from '../services/api';
 export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
   const [routeActive, setRouteActive] = useState(false);
+  const [busInfo, setBusInfo] = useState(null);
   const [stats, setStats] = useState({
     totalStudents: 0,
     pickedUp: 0,
     droppedOff: 0,
+    onBus: 0,
   });
   const [loading, setLoading] = useState(true);
   const [locationWatcher, setLocationWatcher] = useState(null);
@@ -38,16 +40,19 @@ export default function HomeScreen({ navigation }) {
   const fetchRouteData = async () => {
     try {
       const response = await routeAPI.getCurrentRoute();
+      const data = response.data?.data || response.data || {};
       setStats({
-        totalStudents: response.data?.totalStudents || 25,
-        pickedUp: response.data?.pickedUp || 0,
-        droppedOff: response.data?.droppedOff || 0,
+        totalStudents: data.totalStudents ?? 0,
+        pickedUp: data.pickedUp ?? 0,
+        droppedOff: data.droppedOff ?? 0,
+        onBus: data.onBus ?? 0,
       });
-      setRouteActive(response.data?.active || false);
+      setRouteActive(data.active || false);
+      setBusInfo(data.bus || null);
     } catch (error) {
       console.error('Failed to fetch route:', error);
-      // Mock data
-      setStats({ totalStudents: 25, pickedUp: 12, droppedOff: 10 });
+      // Show real zeros — no fake/hardcoded data
+      setStats({ totalStudents: 0, pickedUp: 0, droppedOff: 0, onBus: 0 });
     } finally {
       setLoading(false);
     }
@@ -153,7 +158,7 @@ export default function HomeScreen({ navigation }) {
           <View>
             <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Driver'}!</Text>
             <Text style={styles.subGreeting}>
-              {routeActive ? 'Route in progress' : 'Ready to start your route?'}
+              {busInfo ? `Bus ${busInfo.busNumber} · ${busInfo.routeName}` : (routeActive ? 'Route in progress' : 'Ready to start your route?')}
             </Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -185,7 +190,14 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="people" size={24} color="#3B82F6" />
             </View>
             <Text style={styles.statNumber}>{stats.totalStudents}</Text>
-            <Text style={styles.statLabel}>Total Students</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="bus" size={24} color="#F59E0B" />
+            </View>
+            <Text style={styles.statNumber}>{stats.onBus}</Text>
+            <Text style={styles.statLabel}>On Bus</Text>
           </View>
           <View style={styles.statCard}>
             <View style={[styles.statIconContainer, { backgroundColor: '#D1FAE5' }]}>
@@ -196,10 +208,10 @@ export default function HomeScreen({ navigation }) {
           </View>
           <View style={styles.statCard}>
             <View style={[styles.statIconContainer, { backgroundColor: '#E0E7FF' }]}>
-              <Ionicons name="arrow-down-circle" size={24} color="#6366F1" />
+              <Ionicons name="school" size={24} color="#6366F1" />
             </View>
             <Text style={styles.statNumber}>{stats.droppedOff}</Text>
-            <Text style={styles.statLabel}>Dropped Off</Text>
+            <Text style={styles.statLabel}>At School</Text>
           </View>
         </View>
 

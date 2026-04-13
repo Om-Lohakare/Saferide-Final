@@ -35,18 +35,13 @@ export default function StudentsScreen({ navigation }) {
   const fetchStudents = async () => {
     try {
       const response = await routeAPI.getStudentsList();
-      setStudents(response.data?.students || []);
+      // Backend returns { success: true, students: [...] }
+      const list = response.data?.students || response.data?.data || [];
+      setStudents(list);
     } catch (error) {
       console.error('Failed to fetch students:', error);
-      // Mock data with Four-Step status
-      setStudents([
-        { _id: '1', name: 'John Smith Jr.', grade: '5th', boardingStatus: 'not_boarded', address: '123 Oak St' },
-        { _id: '2', name: 'Emily Smith', grade: '3rd', boardingStatus: 'morning_picked_up', address: '123 Oak St' },
-        { _id: '3', name: 'Michael Brown', grade: '6th', boardingStatus: 'at_school', address: '456 Elm Ave' },
-        { _id: '4', name: 'Sarah Johnson', grade: '4th', boardingStatus: 'evening_picked_up', address: '789 Pine Rd' },
-        { _id: '5', name: 'David Wilson', grade: '5th', boardingStatus: 'dropped_home', address: '321 Maple Dr' },
-        { _id: '6', name: 'Emma Davis', grade: '2nd', boardingStatus: 'absent', address: '654 Cedar Ln' },
-      ]);
+      // Show empty list — no fake data
+      setStudents([]);
     } finally {
       setLoading(false);
     }
