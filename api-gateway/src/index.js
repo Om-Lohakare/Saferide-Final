@@ -30,6 +30,8 @@ import busRoutes from './routes/bus.routes.js';
 import scanRoutes from './routes/scan.routes.js';
 import userRoutes from './routes/user.routes.js';
 import parentRoutes from './routes/parent.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import driverRoutes from './routes/driver.routes.js';
 
 // ============================================
 // Initialize Express Application
@@ -98,6 +100,8 @@ app.use(`${apiPrefix}/buses`, busRoutes);
 app.use(`${apiPrefix}/scan`, scanRoutes);
 app.use(`${apiPrefix}/users`, userRoutes);
 app.use(`${apiPrefix}/parent`, parentRoutes);
+app.use(`${apiPrefix}/dashboard`, dashboardRoutes);
+app.use(`${apiPrefix}/driver`, driverRoutes);
 
 // ============================================
 // Error Handling
