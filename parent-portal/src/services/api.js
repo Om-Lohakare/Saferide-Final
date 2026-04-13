@@ -1,0 +1,66 @@
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const api = axios.create({
+  baseURL: `${API_URL}/api/v1`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authAPI = {
+  login: (credentials) => api.post('/auth/login', credentials),
+  register: (data) => api.post('/auth/register', data),
+  getProfile: () => api.get('/auth/profile'),
+};
+
+// Children API (students linked to parent)
+export const childrenAPI = {
+  getAll: () => api.get('/parent/children'),
+  getById: (id) => api.get(`/parent/children/${id}`),
+  getHistory: (id, params) => api.get(`/parent/children/${id}/history`, { params }),
+};
+
+// Bus tracking API
+export const trackingAPI = {
+  getBusLocation: (busId) => api.get(`/buses/${busId}/location`),
+  getChildBusLocation: (childId) => api.get(`/parent/children/${childId}/bus-location`),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: () => api.get('/parent/notifications'),
+  markRead: (id) => api.put(`/parent/notifications/${id}/read`),
+  markAllRead: () => api.put('/parent/notifications/read-all'),
+  getSettings: () => api.get('/parent/notification-settings'),
+  updateSettings: (settings) => api.put('/parent/notification-settings', settings),
+};
+
+export default api;
